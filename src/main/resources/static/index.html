@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <title>奇点日记</title>
+    <link rel="stylesheet" href="https://unpkg.com/element-plus/dist/index.css">
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://unpkg.com/element-plus"></script>
+    <style>
+        body { margin: 0; }
+        .header { background: #1a1a2e; color: #e0e0e0; padding: 12px 24px; display: flex; justify-content: space-between; align-items: center; }
+        .container { max-width: 800px; margin: 20px auto; padding: 0 20px; }
+        .article-title { cursor: pointer; color: #409eff; transition: 0.2s; }
+        .article-title:hover { text-decoration: underline; color: #337ecc; }
+
+        /* 文章详情布局 */
+        .detail-layout { display: flex; flex-direction: column; height: 70vh; }
+        .detail-content { flex: 0 0 auto; margin-bottom: 20px; padding-bottom: 20px; border-bottom: 1px solid #e4e7ed; }
+        .detail-content .article-body { white-space: pre-wrap; line-height: 1.8; margin: 20px 0; background: #fafafa; padding: 16px; border-radius: 8px; }
+
+        .comment-section { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+        .comment-list { flex: 1; overflow-y: auto; padding-right: 8px; margin-bottom: 16px; }
+        .comment-item { margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid #f0f0f0; }
+        .comment-content { margin: 6px 0; line-height: 1.6; }
+        .comment-time { font-size: 12px; color: #999; }
+        .comment-input-area { flex: 0 0 auto; }
+    </style>
+</head>
+<body>
+<div id="app">
+    <!-- 顶部导航 -->
+    <div class="header">
+        <h2>🌌 奇点日记</h2>
+        <div v-if="!user">
+            <el-button type="success" @click="showRegisterDialog = true">注册</el-button>
+            <el-button type="primary" @click="showLoginDialog = true">登录</el-button>
+        </div>
+        <div v-else>
+            欢迎，{{ user.username }}
+            <el-button type="warning" @click="logout">退出</el-button>
+            <el-button type="primary" @click="showCreateArticle = true">写文章</el-button>
+        </div>
+    </div>
+
+    <div class="container">
+        <h3>最新文章</h3>
+        <el-card v-for="article in articles" :key="article.id" style="margin-bottom: 15px;">
+            <h3 class="article-title" @click="openArticleDetail(article)">{{ article.title }}</h3>
+            <p>{{ article.summary || '暂无摘要' }}</p>
+            <small>{{ article.createTime }}</small>
+        </el-card>
+        <div v-if="articles.length === 0">暂无文章</div>
+    </div>
+
+    <!-- 注册对话框 -->
+    <el-dialog v-model="showRegisterDialog" title="注册">
+        <el-form :model="registerForm">
+            <el-form-item label="用户名"><el-input v-model="registerForm.username"></el-input></el-form-item>
+            <el-form-item label="密码"><el-input type="password" v-model="registerForm.password"></el-input></el-form-item>
+            <el-form-item label="邮箱"><el-input v-model="registerForm.email"></el-input></el-form-item>
+        </el-form>
+        <template #footer>
+            <el-button @click="showRegisterDialog = false">取消</el-button>
+            <el-button type="primary" @click="register">确认注册</el-button>
+        </template>
+    </el-dialog>
+
+    <!-- 登录对话框 -->
+    <el-dialog v-model="showLoginDialog" title="登录">
+        <el-form :model="loginForm">
+            <el-form-item label="用户名"><el-input v-model="loginForm.username"></el-input></el-form-item>
+            <el-form-item label="密码"><el-input type="password" v-model="loginForm.password"></el-input></el-form-item>
+        </el-form>
+        <template #footer>
+            <el-button @click="showLoginDialog = false">取消</el-button>
+            <el-button type="primary" @click="login">登录</el-button>
+        </template>
+    </el-dialog>
+
+    <!-- 写文章对话框 -->
+    <el-dialog v-model="showCreateArticle" title="写文章" width="600px">
+        <el-form :model="articleForm">
+            <el-form-item label="标题"><el-input v-model="articleForm.title"></el-input></el-form-item>
+            <el-form-item label="摘要"><el-input v-model="articleForm.summary"></el-input></el-form-item>
+            <el-form-item label="内容"><el-input type="textarea" :rows="10" v-model="articleForm.content"></el-input></el-form-item>
+        </el-form>
+        <template #footer>
+            <el-button @click="showCreateArticle = false">取消</el-button>
+            <el-button type="primary" @click="createArticle">发布</el-button>
+        </template>
+    </el-dialog>
+
+    <!-- 文章详情对话框 - 重构布局 -->
+    <el-dialog v-model="showArticleDetail" :title="currentArticle?.title" width="800px" top="5vh">
+        <div v-if="currentArticle" class="detail-layout">
+            <!-- 文章内容区域 -->
+            <div class="detail-content">
+                <p style="color:#666; font-size:14px;">发布于：{{ currentArticle.createTime }}</p>
+                <div class="article-body">{{ currentArticle.content }}</div>
+            </div>
+
+            <!-- 评论区 - 独占下方空间 -->
+            <div class="comment-section">
+                <h4 style="margin-top:0;">💬 评论 ({{ comments.length }})</h4>
+
+                <!-- 评论列表（可滚动） -->
+                <div class="comment-list">
+                    <div v-if="comments.length > 0">
+                        <div v-for="comment in comments" :key="comment.id" class="comment-item">
+                            <strong>用户{{ comment.userId }}</strong>
+                            <div class="comment-content">{{ comment.content }}</div>
+                            <div class="comment-time">{{ comment.createTime }}</div>
+                        </div>
+                    </div>
+                    <div v-else style="color:#999; text-align:center; padding:20px;">暂无评论，来发表第一条吧</div>
+                </div>
+
+                <!-- 发表评论（固定在底部） -->
+                <div class="comment-input-area">
+                    <div v-if="user">
+                        <el-input v-model="newComment" placeholder="写下你的评论..." type="textarea" :rows="3"></el-input>
+                        <el-button type="primary" size="small" style="margin-top:10px;" @click="submitComment">发表评论</el-button>
+                    </div>
+                    <div v-else>
+                        <el-alert title="请先登录后再评论" type="info" :closable="false" />
+                    </div>
+                </div>
+            </div>
+        </div>
+    </el-dialog>
+</div>
+
+<script>
+    const { createApp, ref, onMounted } = Vue;
+    const { ElMessage } = ElementPlus;
+    const BASE_URL = '';
+
+    const app = createApp({
+        setup() {
+            const user = ref(null);
+            const articles = ref([]);
+            const showRegisterDialog = ref(false);
+            const showLoginDialog = ref(false);
+            const showCreateArticle = ref(false);
+            const showArticleDetail = ref(false);
+            const currentArticle = ref(null);
+            const comments = ref([]);
+            const newComment = ref('');
+
+            const registerForm = ref({ username: '', password: '', email: '' });
+            const loginForm = ref({ username: '', password: '' });
+            const articleForm = ref({ title: '', summary: '', content: '' });
+
+            const loadArticles = async () => {
+                const res = await fetch(`${BASE_URL}/api/articles?page=1&size=20`);
+                const data = await res.json();
+                if (data.code === 200) {
+                    articles.value = data.data.records || data.data;
+                }
+            };
+
+            const register = async () => {
+                const res = await fetch(`${BASE_URL}/api/users/register`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(registerForm.value)
+                });
+                const data = await res.json();
+                if (data.code === 200) {
+                    ElMessage.success('注册成功，请登录');
+                    showRegisterDialog.value = false;
+                    registerForm.value = { username: '', password: '', email: '' };
+                } else {
+                    ElMessage.error(data.message);
+                }
+            };
+
+            const login = async () => {
+                const res = await fetch(`${BASE_URL}/api/users/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(loginForm.value)
+                });
+                const data = await res.json();
+                if (data.code === 200) {
+                    user.value = data.data;
+                    ElMessage.success('登录成功');
+                    showLoginDialog.value = false;
+                    loginForm.value = { username: '', password: '' };
+                } else {
+                    ElMessage.error(data.message);
+                }
+            };
+
+            const logout = () => {
+                user.value = null;
+                ElMessage.info('已退出');
+            };
+
+            const createArticle = async () => {
+                if (!user.value) {
+                    ElMessage.warning('请先登录');
+                    return;
+                }
+                const res = await fetch(`${BASE_URL}/api/articles`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        title: articleForm.value.title,
+                        content: articleForm.value.content,
+                        summary: articleForm.value.summary,
+                        categoryId: null
+                    })
+                });
+                const data = await res.json();
+                if (data.code === 200) {
+                    ElMessage.success('文章发布成功');
+                    showCreateArticle.value = false;
+                    articleForm.value = { title: '', summary: '', content: '' };
+                    loadArticles();
+                } else {
+                    ElMessage.error(data.message);
+                }
+            };
+
+            const openArticleDetail = async (article) => {
+                currentArticle.value = article;
+                showArticleDetail.value = true;
+                await loadComments(article.id);
+            };
+
+            const loadComments = async (articleId) => {
+                const res = await fetch(`${BASE_URL}/api/articles/${articleId}/comments?page=1&size=50`);
+                const data = await res.json();
+                if (data.code === 200) {
+                    comments.value = data.data.records || data.data;
+                } else {
+                    comments.value = [];
+                }
+            };
+
+            const submitComment = async () => {
+                if (!newComment.value.trim()) {
+                    ElMessage.warning('评论不能为空');
+                    return;
+                }
+                const res = await fetch(`${BASE_URL}/api/articles/${currentArticle.value.id}/comments`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ content: newComment.value })
+                });
+                const data = await res.json();
+                if (data.code === 200) {
+                    ElMessage.success('评论成功');
+                    newComment.value = '';
+                    loadComments(currentArticle.value.id);
+                } else {
+                    ElMessage.error(data.message);
+                }
+            };
+
+            onMounted(() => {
+                loadArticles();
+            });
+
+            return {
+                user, articles,
+                showRegisterDialog, registerForm, register,
+                showLoginDialog, loginForm, login,
+                logout,
+                showCreateArticle, articleForm, createArticle,
+                showArticleDetail, currentArticle, openArticleDetail,
+                comments, newComment, submitComment
+            };
+        }
+    });
+
+    app.use(ElementPlus);
+    app.mount('#app');
+</script>
+</body>
+</html>
