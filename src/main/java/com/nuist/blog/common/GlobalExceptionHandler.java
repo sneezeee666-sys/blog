@@ -12,6 +12,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public Result handleException(Exception e) {
+        e.printStackTrace();  // 打印到控制台
         return Result.error(500, "服务器内部错误：" + e.getMessage());
     }
 }
