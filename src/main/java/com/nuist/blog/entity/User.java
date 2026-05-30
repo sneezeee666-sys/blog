@@ -11,6 +11,8 @@ public class User {
     private String username;
     private String password;
     private String email;
+    /** 角色: USER=普通用户, ADMIN=管理员 */
+    private String role;
     @TableField(fill = FieldFill.INSERT)
     private LocalDateTime createTime;
 }

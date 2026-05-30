@@ -2,61 +2,238 @@
 <html lang="zh">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>奇点日记</title>
     <link rel="stylesheet" href="https://unpkg.com/element-plus/dist/index.css">
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <script src="https://unpkg.com/element-plus"></script>
     <style>
-        body { margin: 0; }
-        .header { background: #1a1a2e; color: #e0e0e0; padding: 12px 24px; display: flex; justify-content: space-between; align-items: center; }
+        :root {
+            --base-font: 14px;
+            --article-font: 15px;
+            --content-font: 15px;
+            --line-height: 1.8;
+        }
+        body.large-font {
+            --base-font: 18px;
+            --article-font: 20px;
+            --content-font: 19px;
+            --line-height: 2.0;
+        }
+        body { 
+            margin: 0; 
+            font-size: var(--base-font);
+        }
+        .header { 
+            background: #1a1a2e; 
+            color: #e0e0e0; 
+            padding: 12px 24px; 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        .header-left { display: flex; align-items: center; gap: 16px; }
+        .header-right { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
         .container { max-width: 800px; margin: 20px auto; padding: 0 20px; }
-        .article-title { cursor: pointer; color: #409eff; transition: 0.2s; }
+        .article-title { 
+            cursor: pointer; 
+            color: #409eff; 
+            transition: 0.2s; 
+            font-size: var(--article-font);
+        }
         .article-title:hover { text-decoration: underline; color: #337ecc; }
+        .article-meta { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            margin-top: 8px;
+            color: #999;
+            font-size: 13px;
+        }
+        .article-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+        .article-card-header h3 { margin: 0; }
 
-        /* 文章详情布局 */
-        .detail-layout { display: flex; flex-direction: column; height: 70vh; }
-        .detail-content { flex: 0 0 auto; margin-bottom: 20px; padding-bottom: 20px; border-bottom: 1px solid #e4e7ed; }
-        .detail-content .article-body { white-space: pre-wrap; line-height: 1.8; margin: 20px 0; background: #fafafa; padding: 16px; border-radius: 8px; }
-
-        .comment-section { flex: 1; display: flex; flex-direction: column; min-height: 0; }
-        .comment-list { flex: 1; overflow-y: auto; padding-right: 8px; margin-bottom: 16px; }
-        .comment-item { margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid #f0f0f0; }
-        .comment-content { margin: 6px 0; line-height: 1.6; }
+        /* 文章详情 */
+        .detail-layout {
+            display: flex;
+            flex-direction: column;
+            height: 600px;
+            max-height: 80vh;
+            min-height: 400px;   /* 新增：防止对话框过矮 */
+        }
+        .detail-content {
+            flex: 2;
+            overflow-y: auto;
+            min-height: 0;
+            margin-bottom: 20px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #e4e7ed;
+        }
+        .detail-content .article-body {
+            white-space: pre-wrap;
+            line-height: var(--line-height);
+            font-size: var(--content-font);
+            background: #fafafa;
+            padding: 16px;
+            border-radius: 8px;
+        }
+        .detail-meta {
+            color: #666;
+            font-size: 13px;
+            margin-bottom: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .comment-section {
+            flex: 1;
+/*            display: flex;
+            flex-direction: column;*/
+            min-height: 220px;      /* 关键：评论区最低高度，保证始终可见 */
+        }
+        .comment-list {
+            flex: 1;
+            overflow-y: auto;
+            padding-right: 8px;
+            margin-bottom: 16px;
+        }
+        .comment-item { 
+            margin-bottom: 12px; 
+            padding-bottom: 10px; 
+            border-bottom: 1px solid #f0f0f0; 
+        }
+        /* 让评论头部保持稳定，按钮固定不挤压内容 */
+        .comment-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 8px;
+        }
+        /* 用户名区域允许收缩但保留最小宽度，防止被按钮挤没 */
+        .comment-header strong {
+            flex: 1;
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        /* 删除按钮包裹层固定宽度，不参与 flex 弹性变化 */
+        .comment-header .el-popconfirm,
+        .comment-header .el-button {
+            flex-shrink: 0;         /* 确保按钮不被压缩 */
+            margin-left: 8px;
+        }
+        .comment-content { 
+            margin: 6px 0; 
+            line-height: var(--line-height); 
+            font-size: var(--base-font);
+        }
         .comment-time { font-size: 12px; color: #999; }
         .comment-input-area { flex: 0 0 auto; }
+
+        /* 分页 */
+        .pagination-wrap {
+            display: flex;
+            justify-content: center;
+            margin-top: 24px;
+            padding: 16px 0;
+        }
+
+        /* 响应式 */
+        @media (max-width: 600px) {
+            .container { padding: 0 12px; }
+            .header { padding: 10px 12px; }
+            .header-left { gap: 8px; }
+            .header-left h2 { font-size: 16px; }
+            .detail-layout { height: 500px; min-height: 350px; }  /* 新增 min-height */
+            .comment-section { min-height: 150px; }               /* 新增 */
+        }
     </style>
 </head>
 <body>
 <div id="app">
-    <!-- 顶部导航 -->
     <div class="header">
-        <h2>🌌 奇点日记</h2>
-        <div v-if="!user">
-            <el-button type="success" @click="showRegisterDialog = true">注册</el-button>
-            <el-button type="primary" @click="showLoginDialog = true">登录</el-button>
+        <div class="header-left">
+            <h2>🌌 奇点日记</h2>
+            <!-- 字体切换按钮 -->
+            <el-button 
+                size="small" 
+                :type="isLargeFont ? 'warning' : 'default'" 
+                @click="toggleFontSize"
+                circle>
+                <span v-if="!isLargeFont" title="切换大字体">🔍</span>
+                <span v-else title="切换正常字体">🔎</span>
+            </el-button>
         </div>
-        <div v-else>
-            欢迎，{{ user.username }}
-            <el-button type="warning" @click="logout">退出</el-button>
-            <el-button type="primary" @click="showCreateArticle = true">写文章</el-button>
+        <div class="header-right">
+            <template v-if="!user">
+                <el-button size="small" type="success" @click="showRegisterDialog = true">注册</el-button>
+                <el-button size="small" type="primary" @click="showLoginDialog = true">登录</el-button>
+            </template>
+            <template v-else>
+                <span style="margin-right:8px;">
+                    欢迎，<strong>{{ user.username }}</strong>
+                    <el-tag v-if="user.role === 'ADMIN'" size="small" type="danger" style="margin-left:4px;">管理员</el-tag>
+                </span>
+                <el-button size="small" type="warning" @click="logout">退出</el-button>
+                <el-button size="small" type="primary" @click="showCreateArticle = true">✏️ 写文章</el-button>
+            </template>
         </div>
     </div>
 
     <div class="container">
-        <h3>最新文章</h3>
+        <h3>📝 最新文章</h3>
+        <div v-if="articles.length === 0" style="text-align:center;color:#999;padding:40px;">
+            暂无文章，登录后发表第一篇吧！
+        </div>
         <el-card v-for="article in articles" :key="article.id" style="margin-bottom: 15px;">
-            <h3 class="article-title" @click="openArticleDetail(article)">{{ article.title }}</h3>
-            <p>{{ article.summary || '暂无摘要' }}</p>
-            <small>{{ article.createTime }}</small>
+            <div class="article-card-header">
+                <h3 class="article-title" @click="openArticleDetail(article)">{{ article.title }}</h3>
+                <!-- 删除文章按钮：仅作者本人或管理员可见 -->
+                <el-popconfirm
+                    v-if="canDeleteArticle(article)"
+                    title="确定删除这篇文章吗？"
+                    confirm-button-text="删除"
+                    cancel-button-text="取消"
+                    @confirm="deleteArticle(article.id)">
+                    <template #reference>
+                        <el-button size="small" type="danger" :icon="Delete" circle></el-button>
+                    </template>
+                </el-popconfirm>
+            </div>
+            <p style="color:#555; margin:8px 0;">{{ article.summary || '暂无摘要' }}</p>
+            <div class="article-meta">
+                <span>👤 {{ article.authorName || '未知作者' }}</span>
+                <span>{{ article.createTime }}</span>
+            </div>
         </el-card>
-        <div v-if="articles.length === 0">暂无文章</div>
+
+        <!-- 分页 -->
+        <div class="pagination-wrap" v-if="totalArticles > 0">
+            <el-pagination
+                v-model:current-page="currentPage"
+                :page-size="pageSize"
+                :total="totalArticles"
+                layout="prev, pager, next, jumper"
+                background
+                @current-change="loadArticles"
+            />
+        </div>
     </div>
 
+    <!-- ========== 对话框区域 ========== -->
+
     <!-- 注册对话框 -->
-    <el-dialog v-model="showRegisterDialog" title="注册">
-        <el-form :model="registerForm">
+    <el-dialog v-model="showRegisterDialog" title="注册" width="400px">
+        <el-form :model="registerForm" label-width="80px">
             <el-form-item label="用户名"><el-input v-model="registerForm.username"></el-input></el-form-item>
-            <el-form-item label="密码"><el-input type="password" v-model="registerForm.password"></el-input></el-form-item>
+            <el-form-item label="密码"><el-input type="password" v-model="registerForm.password" show-password></el-input></el-form-item>
             <el-form-item label="邮箱"><el-input v-model="registerForm.email"></el-input></el-form-item>
         </el-form>
         <template #footer>
@@ -66,10 +243,10 @@
     </el-dialog>
 
     <!-- 登录对话框 -->
-    <el-dialog v-model="showLoginDialog" title="登录">
-        <el-form :model="loginForm">
+    <el-dialog v-model="showLoginDialog" title="登录" width="400px">
+        <el-form :model="loginForm" label-width="80px">
             <el-form-item label="用户名"><el-input v-model="loginForm.username"></el-input></el-form-item>
-            <el-form-item label="密码"><el-input type="password" v-model="loginForm.password"></el-input></el-form-item>
+            <el-form-item label="密码"><el-input type="password" v-model="loginForm.password" show-password @keyup.enter="login"></el-input></el-form-item>
         </el-form>
         <template #footer>
             <el-button @click="showLoginDialog = false">取消</el-button>
@@ -78,48 +255,79 @@
     </el-dialog>
 
     <!-- 写文章对话框 -->
-    <el-dialog v-model="showCreateArticle" title="写文章" width="600px">
-        <el-form :model="articleForm">
-            <el-form-item label="标题"><el-input v-model="articleForm.title"></el-input></el-form-item>
-            <el-form-item label="摘要"><el-input v-model="articleForm.summary"></el-input></el-form-item>
-            <el-form-item label="内容"><el-input type="textarea" :rows="10" v-model="articleForm.content"></el-input></el-form-item>
+    <el-dialog v-model="showCreateArticle" title="写文章" width="650px" top="5vh">
+        <el-form :model="articleForm" label-width="60px">
+            <el-form-item label="标题"><el-input v-model="articleForm.title" placeholder="输入文章标题"></el-input></el-form-item>
+            <el-form-item label="摘要"><el-input v-model="articleForm.summary" placeholder="简短摘要（可选）"></el-input></el-form-item>
+            <el-form-item label="内容">
+                <el-input type="textarea" :rows="12" v-model="articleForm.content" placeholder="写下你的想法..."></el-input>
+            </el-form-item>
         </el-form>
         <template #footer>
             <el-button @click="showCreateArticle = false">取消</el-button>
-            <el-button type="primary" @click="createArticle">发布</el-button>
+            <el-button type="primary" @click="createArticle">✈️ 发布</el-button>
         </template>
     </el-dialog>
 
-    <!-- 文章详情对话框 - 重构布局 -->
-    <el-dialog v-model="showArticleDetail" :title="currentArticle?.title" width="800px" top="5vh">
+    <!-- 文章详情对话框（含评论） -->
+    <el-dialog 
+        v-model="showArticleDetail" 
+        :title="currentArticle?.title" 
+        width="800px" 
+        top="5vh"
+        @close="closeArticleDetail">
         <div v-if="currentArticle" class="detail-layout">
-            <!-- 文章内容区域 -->
             <div class="detail-content">
-                <p style="color:#666; font-size:14px;">发布于：{{ currentArticle.createTime }}</p>
+                <div class="detail-meta">
+                    <span>👤 {{ currentArticle.authorName || '未知作者' }} · {{ currentArticle.createTime }}</span>
+                    <!-- 删除文章：在详情页也可以删除 -->
+                    <el-popconfirm
+                        v-if="canDeleteArticle(currentArticle)"
+                        title="确定删除这篇文章吗？"
+                        @confirm="deleteArticleFromDetail">
+                        <template #reference>
+                            <el-button size="small" type="danger">🗑️ 删除文章</el-button>
+                        </template>
+                    </el-popconfirm>
+                </div>
                 <div class="article-body">{{ currentArticle.content }}</div>
             </div>
 
-            <!-- 评论区 - 独占下方空间 -->
             <div class="comment-section">
                 <h4 style="margin-top:0;">💬 评论 ({{ comments.length }})</h4>
-
-                <!-- 评论列表（可滚动） -->
                 <div class="comment-list">
                     <div v-if="comments.length > 0">
                         <div v-for="comment in comments" :key="comment.id" class="comment-item">
-                            <strong>用户{{ comment.userId }}</strong>
+                            <div class="comment-header">
+                                <strong>{{ comment.username }}</strong>
+                                <!-- 删除评论：仅本人或管理员 -->
+                                <el-popconfirm
+                                    v-if="canDeleteComment(comment)"
+                                    title="确定删除这条评论吗？"
+                                    @confirm="deleteComment(comment.id)">
+                                    <template #reference>
+                                        <el-button size="small" type="danger" :icon="Delete" circle style="width:24px;height:24px;"></el-button>
+                                    </template>
+                                </el-popconfirm>
+                            </div>
                             <div class="comment-content">{{ comment.content }}</div>
                             <div class="comment-time">{{ comment.createTime }}</div>
                         </div>
                     </div>
-                    <div v-else style="color:#999; text-align:center; padding:20px;">暂无评论，来发表第一条吧</div>
+                    <div v-else style="color:#999; text-align:center; padding:20px;">暂无评论，来发表第一条吧！</div>
                 </div>
-
-                <!-- 发表评论（固定在底部） -->
                 <div class="comment-input-area">
                     <div v-if="user">
-                        <el-input v-model="newComment" placeholder="写下你的评论..." type="textarea" :rows="3"></el-input>
-                        <el-button type="primary" size="small" style="margin-top:10px;" @click="submitComment">发表评论</el-button>
+                        <el-input 
+                            v-model="newComment" 
+                            placeholder="写下你的评论..." 
+                            type="textarea" 
+                            :rows="3"
+                            @keyup.enter.ctrl="submitComment">
+                        </el-input>
+                        <el-button type="primary" size="small" style="margin-top:10px;" @click="submitComment">
+                            💬 发表评论
+                        </el-button>
                     </div>
                     <div v-else>
                         <el-alert title="请先登录后再评论" type="info" :closable="false" />
@@ -131,14 +339,22 @@
 </div>
 
 <script>
-    const { createApp, ref, onMounted } = Vue;
-    const { ElMessage } = ElementPlus;
+    const { createApp, ref, onMounted, computed } = Vue;
+    const { ElMessage, ElMessageBox } = ElementPlus;
     const BASE_URL = '';
 
     const app = createApp({
         setup() {
+            // 状态
             const user = ref(null);
+            const token = ref(null);
             const articles = ref([]);
+            const currentPage = ref(1);
+            const pageSize = ref(10);
+            const totalArticles = ref(0);
+            const isLargeFont = ref(false);
+
+            // 对话框
             const showRegisterDialog = ref(false);
             const showLoginDialog = ref(false);
             const showCreateArticle = ref(false);
@@ -147,22 +363,38 @@
             const comments = ref([]);
             const newComment = ref('');
 
+            // 表单
             const registerForm = ref({ username: '', password: '', email: '' });
             const loginForm = ref({ username: '', password: '' });
             const articleForm = ref({ title: '', summary: '', content: '' });
 
+            // 图标
+            const Delete = 'Delete';
+
+            // 请求头
+            const authHeaders = () => {
+                const headers = { 'Content-Type': 'application/json' };
+                if (token.value) headers['Authorization'] = `Bearer ${token.value}`;
+                return headers;
+            };
+
+            // ===== 文章列表 =====
             const loadArticles = async () => {
-                const res = await fetch(`${BASE_URL}/api/articles?page=1&size=20`);
+                const res = await fetch(`${BASE_URL}/api/articles?page=${currentPage.value}&size=${pageSize.value}`);
                 const data = await res.json();
                 if (data.code === 200) {
-                    articles.value = data.data.records || data.data;
+                    articles.value = data.data.records || [];
+                    totalArticles.value = data.data.total || 0;
                 }
             };
 
+            // ===== 用户 =====
             const register = async () => {
+                if (!registerForm.value.username || !registerForm.value.password) {
+                    ElMessage.warning('用户名和密码不能为空'); return;
+                }
                 const res = await fetch(`${BASE_URL}/api/users/register`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(registerForm.value)
                 });
                 const data = await res.json();
@@ -170,46 +402,48 @@
                     ElMessage.success('注册成功，请登录');
                     showRegisterDialog.value = false;
                     registerForm.value = { username: '', password: '', email: '' };
-                } else {
-                    ElMessage.error(data.message);
-                }
+                } else ElMessage.error(data.message);
             };
 
             const login = async () => {
                 const res = await fetch(`${BASE_URL}/api/users/login`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(loginForm.value)
                 });
                 const data = await res.json();
                 if (data.code === 200) {
-                    user.value = data.data;
+                    user.value = data.data.user;
+                    token.value = data.data.token;
+                    localStorage.setItem('blog_token', token.value);
+                    localStorage.setItem('blog_user', JSON.stringify(user.value));
                     ElMessage.success('登录成功');
                     showLoginDialog.value = false;
                     loginForm.value = { username: '', password: '' };
-                } else {
-                    ElMessage.error(data.message);
-                }
+                    loadArticles();
+                } else ElMessage.error(data.message);
             };
 
             const logout = () => {
-                user.value = null;
+                user.value = null; 
+                token.value = null;
+                localStorage.removeItem('blog_token'); 
+                localStorage.removeItem('blog_user');
                 ElMessage.info('已退出');
             };
 
+            // ===== 文章操作 =====
             const createArticle = async () => {
-                if (!user.value) {
-                    ElMessage.warning('请先登录');
-                    return;
+                if (!user.value) { ElMessage.warning('请先登录'); return; }
+                if (!articleForm.value.title || !articleForm.value.content) {
+                    ElMessage.warning('标题和内容不能为空'); return;
                 }
                 const res = await fetch(`${BASE_URL}/api/articles`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        title: articleForm.value.title,
-                        content: articleForm.value.content,
-                        summary: articleForm.value.summary,
-                        categoryId: null
+                    method: 'POST', headers: authHeaders(),
+                    body: JSON.stringify({ 
+                        title: articleForm.value.title, 
+                        content: articleForm.value.content, 
+                        summary: articleForm.value.summary, 
+                        categoryId: null 
                     })
                 });
                 const data = await res.json();
@@ -217,36 +451,65 @@
                     ElMessage.success('文章发布成功');
                     showCreateArticle.value = false;
                     articleForm.value = { title: '', summary: '', content: '' };
+                    currentPage.value = 1;
                     loadArticles();
-                } else {
-                    ElMessage.error(data.message);
-                }
+                } else ElMessage.error(data.message);
             };
 
+            const deleteArticle = async (articleId) => {
+                const res = await fetch(`${BASE_URL}/api/articles/${articleId}`, {
+                    method: 'DELETE', headers: authHeaders()
+                });
+                const data = await res.json();
+                if (data.code === 200) {
+                    ElMessage.success('文章已删除');
+                    loadArticles();
+                } else ElMessage.error(data.message);
+            };
+
+            const deleteArticleFromDetail = async () => {
+                await deleteArticle(currentArticle.value.id);
+                showArticleDetail.value = false;
+            };
+
+            // 权限判断
+            const canDeleteArticle = (article) => {
+                if (!user.value) return false;
+                if (user.value.role === 'ADMIN') return true;          // 管理员可删所有
+                return article.userId === user.value.id;               // 作者本人
+            };
+
+            // ===== 文章详情 & 评论 =====
             const openArticleDetail = async (article) => {
-                currentArticle.value = article;
+                // 先取最新文章数据（含作者名）
+                const res = await fetch(`${BASE_URL}/api/articles/${article.id}`);
+                const data = await res.json();
+                if (data.code === 200) {
+                    currentArticle.value = data.data;
+                } else {
+                    currentArticle.value = article; // 降级
+                }
                 showArticleDetail.value = true;
                 await loadComments(article.id);
+            };
+
+            const closeArticleDetail = () => {
+                currentArticle.value = null;
+                comments.value = [];
+                newComment.value = '';
             };
 
             const loadComments = async (articleId) => {
                 const res = await fetch(`${BASE_URL}/api/articles/${articleId}/comments?page=1&size=50`);
                 const data = await res.json();
-                if (data.code === 200) {
-                    comments.value = data.data.records || data.data;
-                } else {
-                    comments.value = [];
-                }
+                comments.value = (data.code === 200 && data.data) ? (data.data.records || []) : [];
             };
 
             const submitComment = async () => {
-                if (!newComment.value.trim()) {
-                    ElMessage.warning('评论不能为空');
-                    return;
-                }
+                if (!newComment.value.trim()) { ElMessage.warning('评论不能为空'); return; }
+                if (!user.value) { ElMessage.warning('请先登录'); return; }
                 const res = await fetch(`${BASE_URL}/api/articles/${currentArticle.value.id}/comments`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    method: 'POST', headers: authHeaders(),
                     body: JSON.stringify({ content: newComment.value })
                 });
                 const data = await res.json();
@@ -254,23 +517,64 @@
                     ElMessage.success('评论成功');
                     newComment.value = '';
                     loadComments(currentArticle.value.id);
+                } else ElMessage.error(data.message);
+            };
+
+            const deleteComment = async (commentId) => {
+                const res = await fetch(
+                    `${BASE_URL}/api/articles/${currentArticle.value.id}/comments/${commentId}`, {
+                        method: 'DELETE', headers: authHeaders()
+                    });
+                const data = await res.json();
+                if (data.code === 200) {
+                    ElMessage.success('评论已删除');
+                    loadComments(currentArticle.value.id);
+                } else ElMessage.error(data.message);
+            };
+
+            const canDeleteComment = (comment) => {
+                if (!user.value) return false;
+                if (user.value.role === 'ADMIN') return true;          // 管理员可删所有评论
+                return comment.userId === user.value.id;               // 评论作者本人
+            };
+
+            // ===== 字体切换 =====
+            const toggleFontSize = () => {
+                isLargeFont.value = !isLargeFont.value;
+                if (isLargeFont.value) {
+                    document.body.classList.add('large-font');
+                    localStorage.setItem('blog_font_large', '1');
                 } else {
-                    ElMessage.error(data.message);
+                    document.body.classList.remove('large-font');
+                    localStorage.setItem('blog_font_large', '0');
                 }
             };
 
+            // ===== 初始化 =====
             onMounted(() => {
+                const savedToken = localStorage.getItem('blog_token');
+                const savedUser = localStorage.getItem('blog_user');
+                if (savedToken && savedUser) { 
+                    token.value = savedToken; 
+                    user.value = JSON.parse(savedUser); 
+                }
+                // 恢复字体设置
+                if (localStorage.getItem('blog_font_large') === '1') {
+                    isLargeFont.value = true;
+                    document.body.classList.add('large-font');
+                }
                 loadArticles();
             });
 
             return {
-                user, articles,
+                user, token, articles, currentPage, pageSize, totalArticles, isLargeFont,
                 showRegisterDialog, registerForm, register,
-                showLoginDialog, loginForm, login,
-                logout,
+                showLoginDialog, loginForm, login, logout,
                 showCreateArticle, articleForm, createArticle,
-                showArticleDetail, currentArticle, openArticleDetail,
-                comments, newComment, submitComment
+                showArticleDetail, currentArticle, openArticleDetail, closeArticleDetail,
+                comments, newComment, submitComment, deleteComment,
+                canDeleteArticle, canDeleteComment, deleteArticle, deleteArticleFromDetail,
+                toggleFontSize, Delete
             };
         }
     });

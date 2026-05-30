@@ -1,6 +1,7 @@
 package com.nuist.blog.controller;
 import com.nuist.blog.common.Result;
 import com.nuist.blog.dto.LoginRequest;
+import com.nuist.blog.dto.LoginResponse;
 import com.nuist.blog.dto.RegisterRequest;
 import com.nuist.blog.entity.User;
 import com.nuist.blog.service.UserService;
@@ -21,7 +22,7 @@ public class UserController {
     }
 
     @PostMapping("/login")
-    public Result<User> login(@RequestBody LoginRequest request) {
+    public Result<LoginResponse> login(@RequestBody LoginRequest request) {
         return Result.success(userService.login(request));
     }
 
